@@ -22,3 +22,20 @@ select,
 textarea {
     max-width: 280px;
 }
+#chartContainerTop, #chartContainerTopYTD{
+    position: relative;
+}
+.canvasjs-chart-canvas{
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+#tableSalePrnTotal, #tableSalePrnYTDTotal{
+    position: absolute;
+    right: 10%;
+    top: 5%;
+    z-index: 9999;
+    border-style: solid;
+    border-width: 2px;
+    border-color: white;
+}

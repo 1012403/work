@@ -1,40 +1,502 @@
 ﻿@{
     ViewBag.Title = "Home Page";
 }
+<script type="text/javascript" src="../Scripts/libs/jquery.min.js"></script>
+<script type="text/javascript" src="../Scripts/libs/filesaver.min.js"></script>
+<script type="text/javascript" src="../Scripts/libs/jszip.min.js"></script>
+<script type="text/javascript" src="../Scripts/dist/pptxgen.shapes.js"></script>
+<script type="text/javascript" src="../Scripts/dist/pptxgen.masters.js"></script>
+<script type="text/javascript" src="../Scripts/dist/pptxgen.js"></script>
+<script type="text/javascript" src="../Scripts/libs/canvasjs.min.js"></script>
+
+<style>
+    table, th, td {
+        border: 1px solid black;
+        border-collapse: collapse;
+    }
+</style>
 
 <div class="jumbotron">
     <form id="Form1" method="post" action="/home/abc" runat="server" enctype="multipart/form-data">
         <label for="file">Filename:</label>
         <input type="file" name="file" id="file" />
+        <button id="Submit1" type="button">Upload File</button>
+        <!--<input id="Submit1" type="submit" />-->
+    </form>
 
-        <input id="Submit1" type="submit" />
-        </form>
+    <button id="btnChart" type="button">Create Report</button>
+    <div id="chartContainer" style="height: 400px; width: 100%;"></div>
+    <div id="tableSale"></div>
+    <br style="clear: both;" />
+    <div id="chartContainerTop" style="height: 400px; width: 100%;"></div>
+    <div id="tableSalePrn"></div>
+    <br style="clear: both;" />
+    <div id="chartContainerTopYTD" style="height: 400px; width: 100%;"></div>
+    <div id="tableSalePrnYTD"></div>
+    <br style="clear: both;" />
+    <div id="chartContainerFrequency" style="height: 400px; width: 100%;"></div>
+    <div id="chartContainerFrequecyPerWeek" style="height: 400px; width: 100%;"></div>
+    <br />
+    <button id="exportButton" type="button">Export as PPT</button>
+
 </div>
 <script>
+    var startDate = new Date("2012/03");
+    var endDate = new Date("2012/12");
     $("#Submit1").click(function () {
         $("#Form1").submit();
     });
+    $("#btnChart").click(function () {
+        $.ajax({
+            type: 'POST',
+            url: 'Home/GetData',
+            async: false,
+            dataType: 'JSON',
+            contentType: 'application/json;',
+            data: {},
+            success: function (result) {
+                var jsonData = JSON.stringify(result);
+                var jsonParse = JSON.parse(jsonData);
+
+                // Top PRNs
+                var arr_sale_monthfr = [];
+                var arr_sale_monthto = [];
+                var arr_prnkey = [];
+                var arr_share_growth = [];
+                //o day là đọc giá trị của kết quả trả về.
+                for (var key in jsonParse.ZuelligPharma_TopPRNs) {
+                    // skip loop if the property is from prototype
+                    if (!jsonParse.ZuelligPharma_TopPRNs.hasOwnProperty(key)) continue;
+                    var obj = jsonParse.ZuelligPharma_TopPRNs[key];
+                    if (obj.prnkey == "Total") {
+                        var item_share_growth_total = { 'y': obj.month_share, 'label': obj.month_growth };
+                        continue;
+                    }
+                    
+                    var item_sale_monthfr = { 'y': obj.sale_monthfr, 'label': obj.prnkey };
+                    var item_sale_monthto = { 'y': obj.sale_monthto, 'label': obj.prnkey };
+                    var item_share_growth = { 'y': obj.month_share, 'label': obj.month_growth };
+                    arr_sale_monthfr.push(item_sale_monthfr);
+                    arr_sale_monthto.push(item_sale_monthto);
+                    arr_share_growth.push(item_share_growth);
+                }
+                // get total PRN
+
+
+                // Top PRNsYTD
+                var arr_sale_yearfr = [];
+                var arr_sale_yearto = [];
+                var arr_prnkeyYTD = [];
+                var arr_share_growth_year = [];
+                //o day là đọc giá trị của kết quả trả về.
+                for (var key in jsonParse.ZuelligPharma_TopPRNs) {
+                    // skip loop if the property is from prototype
+                    if (!jsonParse.ZuelligPharma_TopPRNs.hasOwnProperty(key)) continue;
+
+                    var obj = jsonParse.ZuelligPharma_TopPRNs[key];
+                    if (obj.prnkey == "Total") {
+                        var item_share_growth_year_total = { 'y': obj.year_share, 'label': obj.year_growth };
+                        continue;
+                    }
+                    
+                    var item_sale_yearfr = { 'y': obj.sale_yearfr, 'label': obj.prnkey };
+                    var item_sale_yearto = { 'y': obj.sale_yearto, 'label': obj.prnkey };
+                    var item_share_growth_year = { 'y': obj.year_share, 'label': obj.year_growth };
+                    arr_sale_yearfr.push(item_sale_yearfr);
+                    arr_sale_yearto.push(item_sale_yearto);
+                    arr_share_growth_year.push(item_share_growth_year);
+                }
+
+                var arrGross = [];
+                var arrNet = [];
+                var arrSale = [];
+                for (var key in jsonParse.ZuelligPharma_MATs) {
+                    // skip loop if the property is from prototype
+                    if (!jsonParse.ZuelligPharma_MATs.hasOwnProperty(key)) continue;
+
+                    var obj = jsonParse.ZuelligPharma_MATs[key];
+                    if (startDate > new Date(obj.date)) continue;
+                    if (endDate < new Date(obj.date)) continue;
+                    var itemGross = { 'x': new Date(obj.date), 'y': obj.gros };
+                    var itemNet = { 'x': new Date(obj.date), 'y': obj.net };
+                    var itemSale = { 'x': obj.dateMMMYY, 'y': obj.sale };
+                    arrGross.push(itemGross);
+                    arrNet.push(itemNet);
+                    arrSale.push(itemSale);
+                }
+
+                // Frequencies
+                var arr_frequencies = [];
+                for (var key in jsonParse.ZuelligPharma_Frequencys) {
+                    // skip loop if the property is from prototype
+                    if (!jsonParse.ZuelligPharma_Frequencys.hasOwnProperty(key)) continue;
+
+                    var obj = jsonParse.ZuelligPharma_Frequencys[key];
+                    if (obj.freqno == 'Total') continue;
+                    var item_frequencies = { 'y': obj.numofcust, 'label': obj.freqno, 'indexLabel': obj.percentofcust * 100 + '%' };
+                    arr_frequencies.push(item_frequencies);
+                }
+
+                // Frequency Per Weeks
+                var arr_frequencyPerWeek_twice = [];
+                var arr_frequencyPerWeek_three = [];
+                var arr_frequencyPerWeek_more = [];
+                for (var key in jsonParse.ZuelligPharma_FrequencyPerWeeks) {
+                    // skip loop if the property is from prototype
+                    if (!jsonParse.ZuelligPharma_FrequencyPerWeeks.hasOwnProperty(key)) continue;
+
+                    var obj = jsonParse.ZuelligPharma_FrequencyPerWeeks[key];
+                    var item_twice = { 'y': obj.twice, 'label': obj.week };
+                    var item_three = { 'y': obj.three, 'label': obj.week };
+                    var item_more = { 'y': obj.more, 'label': obj.week };
+
+                    arr_frequencyPerWeek_twice.push(item_twice);
+                    arr_frequencyPerWeek_three.push(item_three);
+                    arr_frequencyPerWeek_more.push(item_more);
+                }
+
+                //ỏ day là chổ in ra table nè. được lấy dữ liệu từ arrSale
+                var content = "<table style='width:100%'>"
+                content += '<tr>';
+                for (i = 0; i < arrSale.length; i++) {
+                    content += '<td>' + arrSale[i].x + '</td>';
+                }
+                content += '</tr>';
+                content += '<tr>';
+                for (i = 0; i < arrSale.length; i++) {
+                    content += '<td>' + arrSale[i].y + '</td>';
+                }
+                content += '</tr>';
+                content += "</table>"
+
+                $('#tableSale').append(content);
+
+                // talbe TOP PRN
+                var content = "<table id='tablePRN' style='width:100%'>"
+                content += '<tr>';
+                //content += '<td style="width:40px;">Growth</td>';
+                for (i = 0; i < arr_share_growth.length; i++) {
+                    content += '<td>' + arr_share_growth[i].label + '%' + '</td>';
+                }
+                content += '</tr>';
+                content += '<tr>';                
+                //content += '<td style="width:40px">Rev.Share</td>';
+                for (i = 0; i < arr_share_growth.length; i++) {
+                    content += '<td>' + arr_share_growth[i].y + '%' + '</td>';
+                }
+                content += '</tr>';
+                content += "</table>"
+
+                $('#tableSalePrn').append(content);
+                
+                // Table Top PRN YTD
+                var content = "<table style='width:100%'>"
+                content += '<tr>';
+                //content += '<td style="width:40px;">Growth</td>';
+                for (i = 0; i < arr_share_growth.length; i++) {
+                    content += '<td>' + arr_share_growth_year[i].label + '%' + '</td>';
+                }
+                content += '</tr>';
+                content += '<tr>';
+                //content += '<td style="width:40px;">Rev.Share</td>';
+                for (i = 0; i < arr_share_growth.length; i++) {
+                    content += '<td>' + arr_share_growth_year[i].y + '%' + '</td>';
+                }
+                content += '</tr>';
+                content += "</table>"
+
+                $('#tableSalePrnYTD').append(content);
+
+                // MAT
+                var chart = new CanvasJS.Chart("chartContainer", {
+                    title: {
+                        text: "ZPV Sales Performance | MAT"
+                    },
+                    axisX: {
+                        valueFormatString: "MMM/YY"
+                    },
+                    toolTip: {
+                        shared: true
+                    },
+                    legend: {
+                        verticalAlign: "top",  // "top" , "bottom"
+                        horizontalAlign: "center"  // "center" , "right"
+
+                    },
+                    data: [{
+                        type: "line",
+                        showInLegend: true,
+                        lineThickness: 2,
+                        name: "Gross",
+                        legendText: "Gross",
+                        markerType: "square",
+                        color: "#FFFF99",
+                        dataPoints: arrGross
+                    },
+                    {
+                        type: "line",
+                        showInLegend: true,
+                        lineThickness: 2,
+                        name: "Net",
+                        legendText: "Net",
+                        markerType: "square",
+                        color: "#2F4F4F",
+                        dataPoints: arrNet
+                    }
+                    ]
+                });
+                chart.render();
+
+                //khỏi tao chart trng cái thẻ div vùa tạo,
+                var chartTop = new CanvasJS.Chart("chartContainerTop", {
+                    title: {
+                        text: ""
+                    },
+                    data: [{
+                        type: "column",
+                        dataPoints: arr_sale_monthfr,
+                        color: "#0E4C5B"
+                    }, {
+                        type: "column",
+                        dataPoints: arr_sale_monthto,
+                        color: "#12787C"
+                    }]
+                });
+                chartTop.render();
+
+                // table total Top PRN
+                var content = "<table id='tableSalePrnTotal' style='width:35%;'>"
+                content += "<tr style='background-color:#999999;'>";
+                content += "<td style = 'width:60%;'>Top 10 Growth</td>";
+                content += "<td>" + item_share_growth_total.label + "%" + "</td>";
+                content += "</tr>";
+                content += "<tr>";
+                content += "<td style = 'width:70%;'>Top 10 Revenue</td>";
+                content += "<td>" + item_share_growth_total.y + "%"+ "</td>";
+                content += "</tr>";
+                content += "</table>";
+
+                $('#chartContainerTop').append(content);
+
+                // Top PRNs YTD
+                var chartTopYTD = new CanvasJS.Chart("chartContainerTopYTD", {
+                    title: {
+                        text: ""
+                    },
+                    data: [{
+                        type: "column",
+                        dataPoints: arr_sale_yearfr,
+                        color: "#0E4C5B"
+                    }, {
+                        type: "column",
+                        dataPoints: arr_sale_yearto,
+                        color: "#12787C"
+                    }]
+                });
+                chartTopYTD.render();
+
+                // table total Top PRN YTD Total
+                var content = "<table id='tableSalePrnYTDTotal' style='width:35%;'>"
+                content += "<tr style='background-color:#999999;'>";
+                content += "<td style = 'width:60%;'>Top 10 Growth</td>";
+                content += "<td>" + item_share_growth_year_total.label + "%" + "</td>";
+                content += "</tr>";
+                content += "<tr>";
+                content += "<td style = 'width:70%;'>Top 10 Revenue</td>";
+                content += "<td>" + item_share_growth_year_total.y + "%" + "</td>";
+                content += "</tr>";
+                content += "</table>";
+
+                $('#chartContainerTopYTD').append(content);
+
+                // Char Frequencies
+                var chart_frequencies = new CanvasJS.Chart("chartContainerFrequency", {
+                    title: {
+                        text: "eZRx customers (as of 31 Mar'16)"
+                    },
+                    axisY: {
+                        title: "No. of cust",
+                        valueFormatString: "#0.#,.",
+                    },
+                    data: [{
+                        type: "column",
+                        color: "#0C7F82",
+                        dataPoints: arr_frequencies
+                    }]
+                });
+                chart_frequencies.render();
+                //Frequency Per Week
+                var chart_frequency_per_week = new CanvasJS.Chart("chartContainerFrequecyPerWeek", {
+                    title: {
+                        text: "Stacked Column Chart"
+                    },
+                    legend: {
+                        verticalAlign: "top"
+                    },
+                    axisX: {
+                        labelAngle: -60,
+                        labelFontSize: 11,
+                        interval: 1,
+                    },
+                    axisY: {
+                        title: "No. of cust"
+                    },
+                    data: [{
+                        type: "stackedColumn",
+                        legendText: "Twice",
+                        showInLegend: "true",
+                        color: "#084759",
+                        dataPoints: arr_frequencyPerWeek_twice
+                    }, {
+                        type: "stackedColumn",
+                        color: "#78A152",
+                        showInLegend: "true",
+                        legendText: "Three times",
+                        dataPoints: arr_frequencyPerWeek_three
+                    }, {
+                        type: "stackedColumn",
+                        color: "#4F4F4F",
+                        showInLegend: "true",
+                        legendText: "Four times and above",
+                        dataPoints: arr_frequencyPerWeek_more
+                    }]
+                });
+                chart_frequency_per_week.render();
+            }
+        });
+    });
+    $("#exportButton").click(function () {
+        //day là cách xuấ image ra ppt nè
+        //laayc cái iamge chart dự vào id
+        var canvas = $("#chartContainer .canvasjs-chart-canvas").get(0);
+        var dataURL = canvas.toDataURL();
+        //khoi tao pptt
+        var pptx = new PptxGenJS();
+        pptx.setLayout('LAYOUT_4x3');
+
+        //tao 1 slide
+        var slide = pptx.addNewSlide();
+        slide.addText('ZPV Sales Performance | MAT', { x: 0.25, y: 0.25, font_size: 20, font_face: 'Arial', color: '0088CC' });
+        //adđ them image vào slide
+        //slide.addImage(dataURL, 0.5, 0.75, 2.35, 2.45);
+        // add chart
+        slide.addImage(dataURL, 0.5, 0.25, 7.5, 4.45);
+        // add table
+        var trArray = [];
+        $("#tableSale").find("tr").each(function (index) {
+            var tdArray = [];
+            $(this).find("td").each(function (index2) {
+                var item = $(this).text();
+                tdArray.push(item);
+            });
+            trArray.push(tdArray);
+        });
+        
+        var rows = trArray;
+        var tabOpts = { x: 0.5, y: 5.0, cx: 7.5 };
+        var celOpts = { fill: 'ffffff', font_size: 8, color: '000000', rowH: 0.5, valign: 'm', align: 'c', border: { pt: '1', color: '63908D' } };
+        slide.addTable(rows, tabOpts, celOpts);
+        // end slide 1
+
+        // tạo slide 3
+        // add chart
+        canvas = $("#chartContainerTop .canvasjs-chart-canvas").get(0);
+        dataURL = canvas.toDataURL();
+        slide = pptx.addNewSlide();
+        slide.addImage(dataURL, 0.5, 0.25, 7.5, 2.25);
+        // add table PRN Top
+        var trArray = [];
+        $("#tableSalePrn").find("tr").each(function (index) {
+            var tdArray = [];
+            $(this).find("td").each(function (index2) {
+                var item = $(this).text();
+                tdArray.push(item);
+            });
+            trArray.push(tdArray);
+        });
+
+        var rows = trArray;
+        var tabOpts = { x: 0.5, y: 2.5, cx: 9.0 };
+        var celOpts = { fill: 'ffffff', font_size: 8, color: '000000', rowH: 0.5, valign: 'm', align: 'c', border: { pt: '1', color: '63908D' } };
+        slide.addTable(rows, tabOpts, celOpts);
+        // add Total
+        var trArray = [];
+        $("#tableSalePrnTotal").find("tr").each(function (index) {
+            var tdArray = [];
+            $(this).find("td").each(function (index2) {
+                var item = $(this).text();
+                tdArray.push(item);
+            });
+            trArray.push(tdArray);
+        });
+
+        var rows = trArray;
+        var tabOpts = { x: 5.5, y: 0.25, cx: 3 };
+        var celOpts = { fill: 'ffffff', font_size: 8, color: '000000', rowH: 0.5, valign: 'm', align: 'c', border: { pt: '1', color: '63908D' } };
+        slide.addTable(rows, tabOpts, celOpts);
+
+        // Top PRN YTD
+        canvas = $("#chartContainerTopYTD .canvasjs-chart-canvas").get(0);
+        dataURL = canvas.toDataURL();
+        slide.addImage(dataURL, 0.5, 3.5, 7.5, 2.5);
+        // add table
+        var trArray = [];
+        $("#tableSalePrnYTD").find("tr").each(function (index) {
+            var tdArray = [];
+            $(this).find("td").each(function (index2) {
+                var item = $(this).text();
+                tdArray.push(item);
+            });
+            trArray.push(tdArray);
+        });
+
+        var rows = trArray;
+        var tabOpts = { x: 0.5, y: 6.0, cx: 9.0 };
+        var celOpts = { fill: 'ffffff', font_size: 8, color: '000000', rowH: 0.5, valign: 'm', align: 'c', border: { pt: '1', color: '63908D' } };
+        slide.addTable(rows, tabOpts, celOpts);
+
+        // add total
+        var trArray = [];
+        $("#tableSalePrnYTDTotal").find("tr").each(function (index) {
+            var tdArray = [];
+            $(this).find("td").each(function (index2) {
+                var item = $(this).text();
+                tdArray.push(item);
+            });
+            trArray.push(tdArray);
+        });
+
+        var rows = trArray;
+        var tabOpts = { x: 5.5, y: 3.5, cx: 3 };
+        var celOpts = { fill: 'ffffff', font_size: 8, color: '000000', rowH: 0.5, valign: 'm', align: 'c', border: { pt: '1', color: '63908D' } };
+        slide.addTable(rows, tabOpts, celOpts);
+        // end slide 3
+
+        // slide 4
+        canvas = $("#chartContainerFrequency .canvasjs-chart-canvas").get(0);
+        dataURL = canvas.toDataURL();
+        slide = pptx.addNewSlide();
+        slide.addImage(dataURL, 0.5, 0.25, 7.5, 3);
+
+        canvas = $("#chartContainerFrequecyPerWeek .canvasjs-chart-canvas").get(0);
+        dataURL = canvas.toDataURL();
+        slide.addImage(dataURL, 0.5, 4.25, 7.5, 3);
+
+        // end slide 4
+		pptx.save('ppt_test');
+
+        //var canvas = null;
+        //var dataURL = null;
+        //var pptx = new PptxGenJS();
+        //$(".canvasjs-chart-canvas").each(function (index, value) {
+        //    canvas = $(this).get(0);
+        //    dataURL = canvas.toDataURL();
+        //    var slide = pptx.addNewSlide();
+        //    if ($(this).getAttribute("id") == "chartContainer") {
+        //        slide.addText('ZPV Sales Performance | MAT', { x: 0.5, y: 0.25, font_size: 20, font_face: 'Arial', color: '0088CC' });
+        //        slide.addImage(dataURL, 0.5, 0.25, 8, 3.45);
+        //    }
+        //});
+        //pptx.save('ppt_test');
+    });
 </script>
-<!---
-<div class="row">
-    <div class="col-md-4">
-        <h2>Getting started</h2>
-        <p>
-            ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-            enables a clean separation of concerns and gives you full control over markup
-            for enjoyable, agile development.
-        </p>
-        <p><a class="btn btn-default" href="http://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
-    </div>
-    <div class="col-md-4">
-        <h2>Get more libraries</h2>
-        <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-        <p><a class="btn btn-default" href="http://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
-    </div>
-    <div class="col-md-4">
-        <h2>Web Hosting</h2>
-        <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-        <p><a class="btn btn-default" href="http://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
-    </div>
-</div>
--->

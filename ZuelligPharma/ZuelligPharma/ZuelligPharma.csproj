@@ -205,6 +205,7 @@
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\IdentityModels.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
+    <Compile Include="Models\ZuelligPharmaModel.cs" />
     <Compile Include="Models\ZuelligPharma_Calculated.cs" />
     <Compile Include="Models\ZuelligPharma_Frequency.cs" />
     <Compile Include="Models\ZuelligPharma_FrequencyPerWeek.cs" />
@@ -229,13 +230,23 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
+    <Content Include="Scripts\canvasjs.min.js" />
+    <Content Include="Scripts\dist\html2canvas.js" />
+    <Content Include="Scripts\dist\pptxgen.js" />
+    <Content Include="Scripts\dist\pptxgen.masters.js" />
+    <Content Include="Scripts\dist\pptxgen.shapes.js" />
     <Content Include="Scripts\jquery-1.10.2.js" />
     <Content Include="Scripts\jquery-1.10.2.min.js" />
     <None Include="Scripts\jquery.validate-vsdoc.js" />
+    <Content Include="Scripts\jquery.canvasjs.min.js" />
     <Content Include="Scripts\jquery.validate.js" />
     <Content Include="Scripts\jquery.validate.min.js" />
     <Content Include="Scripts\jquery.validate.unobtrusive.js" />
     <Content Include="Scripts\jquery.validate.unobtrusive.min.js" />
+    <Content Include="Scripts\libs\canvasjs.min.js" />
+    <Content Include="Scripts\libs\filesaver.min.js" />
+    <Content Include="Scripts\libs\jquery.min.js" />
+    <Content Include="Scripts\libs\jszip.min.js" />
     <Content Include="Scripts\modernizr-2.6.2.js" />
     <Content Include="Scripts\respond.js" />
     <Content Include="Scripts\respond.min.js" />

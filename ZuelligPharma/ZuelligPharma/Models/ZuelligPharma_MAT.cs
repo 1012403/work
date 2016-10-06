@@ -15,6 +15,8 @@ namespace ZuelligPharma.Models
         public double net { get; set; }
         public double sale { get; set; }
         public string timestamp { get; set; }
+
+        public string dateMMMYY { get; set; }
     }
 
     public class ZuelligPharma_MATDBContext : DbContext
